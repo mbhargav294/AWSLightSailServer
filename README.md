@@ -25,13 +25,12 @@
  sudo ufw default deny incoming
  sudo ufw default allow outgoing
  sudo ufw allow ssh
- sudo ufw allow 2200/ufw
- sudo ufw alow www
+ sudo ufw allow 2200/tcp
+ sudo ufw allow www
  sudo ufw allow ntp
  ```
  4. Now change the default ssh port from 22 to 2200, edit the `sshd_config` file present at `/etc/ssh/sshd_config` using nano or vim.
  5. Change the default port from 22 to 2200 in the line that says `Port 22` and at the end of this file add `AllowUsers grader`
- 6.
 
 #### Keep your machine up-to-date
  1. First run `sudo apt-get update` to update the list of available packages.
