@@ -30,7 +30,8 @@
  sudo ufw allow ntp
  ```
  4. Now change the default ssh port from 22 to 2200, edit the `sshd_config` file present at `/etc/ssh/sshd_config` using nano or vim.
- 5. Change the default port from 22 to 2200 in the line that says `Port 22`
+ 5. Change the default port from 22 to 2200 in the line that says `Port 22` and at the end of this file add `AllowUsers grader`
+ 6.
 
 #### Keep your machine up-to-date
  1. First run `sudo apt-get update` to update the list of available packages.
@@ -91,45 +92,46 @@
  4. Following are the list of packages that are installed on my machine for running the Catalog Application.
  ```
  bleach (2.0.0)
-certifi (2017.4.17)
-chardet (3.0.4)
-click (6.7)
-Flask (0.9)
-Flask-HTTPAuth (3.2.3)
-Flask-Login (0.1.3)
-Flask-SQLAlchemy (2.2)
-get (0.0.21)
-html5lib (0.999999999)
-httplib2 (0.10.3)
-idna (2.5)
-itsdangerous (0.24)
-Jinja2 (2.9.6)
-MarkupSafe (1.0)
-oauth2client (4.1.2)
-packaging (16.8)
-passlib (1.7.1)
-pip (9.0.1)
-post (0.0.13)
-psycopg2 (2.7.1)
-public (0.0.38)
-pyasn1 (0.2.3)
-pyasn1-modules (0.0.9)
-pyparsing (2.2.0)
-query-string (0.0.12)
-redis (2.10.5)
-request (0.0.13)
-requests (2.18.1)
-rsa (3.4.2)
-setupfiles (0.0.50)
-setuptools (20.7.0)
-six (1.10.0)
-SQLAlchemy (1.1.11)
-urllib3 (1.21.1)
-virtualenv (15.1.0)
-webencodings (0.5.1)
-Werkzeug (0.8.3)
-wheel (0.29.0)
+ certifi (2017.4.17)
+ chardet (3.0.4)
+ click (6.7)
+ Flask (0.9)
+ Flask-HTTPAuth (3.2.3)
+ Flask-Login (0.1.3)
+ Flask-SQLAlchemy (2.2)
+ get (0.0.21)
+ html5lib (0.999999999)
+ httplib2 (0.10.3)
+ idna (2.5)
+ itsdangerous (0.24)
+ Jinja2 (2.9.6)
+ MarkupSafe (1.0)
+ oauth2client (4.1.2)
+ packaging (16.8)
+ passlib (1.7.1)
+ pip (9.0.1)
+ post (0.0.13)
+ psycopg2 (2.7.1)
+ public (0.0.38)
+ pyasn1 (0.2.3)
+ pyasn1-modules (0.0.9)
+ pyparsing (2.2.0)
+ query-string (0.0.12)
+ redis (2.10.5)
+ request (0.0.13)
+ requests (2.18.1)
+ rsa (3.4.2)
+ setupfiles (0.0.50)
+ setuptools (20.7.0)
+ six (1.10.0)
+ SQLAlchemy (1.1.11)
+ urllib3 (1.21.1)
+ virtualenv (15.1.0)
+ webencodings (0.5.1)
+ Werkzeug (0.8.3)
+ wheel (0.29.0)
  ```
+
 #### Installing Apache web server & setting up the project
  1. Use the following commands to install apache web server:
  ```
@@ -137,4 +139,69 @@ wheel (0.29.0)
  sudo apt-get install libapache2-mod-wsgi
  sudo service apache2 restart
  ```
- 
+ 2. You can test if your apache server is working correctly by going to `http://<public-ip-address>` which will show a default static html page for ubuntu that came with apache.
+ 3. Now apache directories are setup and you can import your project to this directory.
+ 4. Goto `/var/www/` using `cd /var/www/` and run the following commands:
+ ```
+ sudo mkdir FlaskApp
+ cd FlaskApp
+ sudo mkdir Catalog
+ git clone <link-to-your-catalog-git-repo>
+ ```
+ The directory structure will look like follows:
+ ```
+ ---/
+   ---var
+     ---www
+       ---FlaskApp
+         ---Catalog
+           ---static
+           ---templates
+           ---all_other_files
+         ---html
+ ```
+ 5. Rename your `app.py` file to `__init__.py` and change the database connection string to `postgresql://grader:grader@localhost/catalog` in both `database_setup.py` and `__init__.py` files.
+ 6. Run `database_setup.py` file to create required tables.
+
+#### Now setting up the apache to serve Flask Application
+ 1. Create the FlaskApp.conf file using the command `sudo nano /etc/apache2/sites-available/FlaskApp.conf`
+ 2. Edit this file so it looks as follows:
+ ```
+ <VirtualHost *:80>
+    	ServerName <public-dns-address>
+    	ServerAdmin <Your-email-address>
+    	WSGIScriptAlias / /var/www/FlaskApp/flaskapp.wsgi
+    	<Directory /var/www/FlaskApp/FlaskApp/>
+    		Order allow,deny
+    		Allow from all
+    	</Directory>
+    	Alias /static /var/www/FlaskApp/FlaskApp/static
+    	<Directory /var/www/FlaskApp/FlaskApp/static/>
+    		Order allow,deny
+    		Allow from all
+    	</Directory>
+    	ErrorLog ${APACHE_LOG_DIR}/error.log
+    	LogLevel warn
+    	CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+ ```
+ 3. Now enable the virtual host using the command `sudo a2ensite FlaskApp.conf`
+ 4. Then create a .wsgi file in the `FlaskApp` folder present at `/var/www/FlaskApp` and add the following lines to that file:
+ ```
+ #!/usr/bin/python
+ import sys
+ import logging
+ logging.basicConfig(stream=sys.stderr)
+ sys.path.insert(0,"/var/www/FlaskApp/")
+
+ from Catalog import app as application
+ application.secret_key = 'insert-your-app-secret-key-here-and-remove-it-from-the-__init__-file'
+ ```
+ 5. Now restart the server using `sudo service apache2 restart`
+ 6. Go to `http://ec2-34-227-58-96.compute-1.amazonaws.com/` to test the application.
+ 7. Use browser's JavaScript Console and apache logs accessed at `sudo cat /var/log/apache2/error.log` to debug your application.
+
+### References
+ - Setting up users: [Digital Ocean Link](https://www.digitalocean.com/community/tutorials/how-to-create-a-sudo-user-on-ubuntu-quickstart)
+ - Setting up FlaskApp through Apache: [Digital Ocean Link](https://www.digitalocean.com/community/tutorials/how-to-deploy-a-flask-application-on-an-ubuntu-vps)
+ - Root user settings: [a2hosting Link](https://www.a2hosting.com/kb/getting-started-guide/accessing-your-account/disabling-ssh-logins-for-root)
